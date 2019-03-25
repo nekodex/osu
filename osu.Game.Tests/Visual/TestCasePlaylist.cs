@@ -40,6 +40,14 @@ namespace osu.Game.Tests.Visual
             {
                 playlist.AddItem(generatePlaylistItem(rulesets.GetRuleset(lastInsert++ % 4)));
             });
+
+            AddStep("AddItem x 25", () =>
+            {
+                for (int i = 0; i < 25; i++)
+                {
+                    playlist.AddItem(generatePlaylistItem(rulesets.GetRuleset(lastInsert++ % 4)));
+                }
+            });
         }
 
         private PlaylistItem generatePlaylistItem(RulesetInfo ruleset)
