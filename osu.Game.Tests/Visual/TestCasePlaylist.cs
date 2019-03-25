@@ -19,6 +19,7 @@ namespace osu.Game.Tests.Visual
         {
             typeof(BeatmapPlaylist),
             typeof(BeatmapPlaylistItem),
+            typeof(BeatmapSortableFlowContainer),
         };
 
         private BeatmapPlaylist playlist;
