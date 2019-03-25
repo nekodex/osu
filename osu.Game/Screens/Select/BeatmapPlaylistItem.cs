@@ -256,16 +256,21 @@ namespace osu.Game.Screens.Select
             }
         }
 
-        private class DragHandle : SpriteIcon
+        private class DragHandle : Container
         {
             public DragHandle()
             {
-                Anchor = Anchor.CentreLeft;
-                Origin = Anchor.CentreLeft;
-                Size = new Vector2(12);
-                Icon = FontAwesome.fa_bars;
+                RelativeSizeAxes = Axes.Y;
+                Width = 25;
                 Alpha = 0;
-                Margin = new MarginPadding { Left = 5, Top = 2 };
+                Child = new SpriteIcon
+                {
+                    Anchor = Anchor.CentreLeft,
+                    Origin = Anchor.CentreLeft,
+                    Size = new Vector2(12),
+                    Icon = FontAwesome.fa_bars,
+                    Margin = new MarginPadding { Left = 5, Top = 2 }
+                };
             }
 
             public override bool HandlePositionalInput => IsPresent;
