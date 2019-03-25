@@ -83,7 +83,7 @@ namespace osu.Game.Screens.Select
             for (; dstIndex < Count; dstIndex++)
             {
                 // Using BoundingBox here takes care of scale, paddings, etc...
-                heightAccumulator += this[dstIndex].BoundingBox.Height;
+                heightAccumulator += this[dstIndex].BoundingBox.Height + Spacing.Y;
                 if (heightAccumulator > itemsPos.Y)
                     break;
             }
