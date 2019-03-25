@@ -27,6 +27,8 @@ namespace osu.Game.Screens.Select
 
         public event Action<BeatmapPlaylistItem> RequestRemoval;
 
+        public bool IsDraggable { get; private set; }
+
         private const int fade_duration = 60;
         private readonly DragHandle dragHandle;
         private readonly RemoveButton removeButton;
@@ -213,12 +215,17 @@ namespace osu.Game.Screens.Select
         {
             // We manually track dragging status as to not capture dragging events (so we don't interfere with the scrolling behaviour of our parent)
             isDragged = true;
+            IsDraggable = dragHandle.IsHovered;
+            if (IsDraggable)
+                Alpha = 0.25f;
             return false;
         }
 
         protected override bool OnMouseUp(MouseUpEvent e)
         {
             isDragged = false;
+            IsDraggable = false;
+            Alpha = 1;
 
             if (!isHovered)
                 showHoverElements(false);
@@ -260,6 +267,8 @@ namespace osu.Game.Screens.Select
                 Alpha = 0;
                 Margin = new MarginPadding { Left = 5, Top = 2 };
             }
+
+            public override bool HandlePositionalInput => IsPresent;
 
             public override void Show()
             {
