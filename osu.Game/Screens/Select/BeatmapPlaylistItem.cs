@@ -32,8 +32,12 @@ namespace osu.Game.Screens.Select
         private const int fade_duration = 60;
         private readonly DragHandle dragHandle;
         private readonly RemoveButton removeButton;
+        private readonly Box background;
+        private readonly Box gradient;
         private bool isHovered;
         private bool isDragged;
+        private readonly Color4 backgroundColour = Color4.Black;
+        private readonly Color4 selectedColour = new Color4(0.1f, 0.1f, 0.1f, 1f);
 
         public BeatmapPlaylistItem(PlaylistItem item)
         {
@@ -57,7 +61,7 @@ namespace osu.Game.Screens.Select
                         EdgeEffect = new EdgeEffectParameters
                         {
                             Type = EdgeEffectType.Shadow,
-                            Colour = Color4.Black.Opacity(40),
+                            Colour = backgroundColour.Opacity(40),
                             Radius = 5,
                         },
                         Children = new Drawable[]
@@ -67,16 +71,16 @@ namespace osu.Game.Screens.Select
                                 RelativeSizeAxes = Axes.Both,
                                 Children = new Drawable[]
                                 {
-                                    new Box
+                                    background = new Box
                                     {
-                                        Colour = Color4.Black,
+                                        Colour = backgroundColour,
                                         RelativeSizeAxes = Axes.Both,
-                                        Width = 0.25f,
+                                        Width = 0.5f,
                                     },
                                     new Container
                                     {
                                         RelativeSizeAxes = Axes.Both,
-                                        Width = 0.75f,
+                                        Width = 0.5f,
                                         Children = new Drawable[]
                                         {
                                             cover = new UpdateableBeatmapBackgroundSprite
@@ -84,9 +88,9 @@ namespace osu.Game.Screens.Select
                                                 RelativeSizeAxes = Axes.Both,
                                                 FillMode = FillMode.Stretch
                                             },
-                                            new Box
+                                            gradient = new Box
                                             {
-                                                Colour = ColourInfo.GradientHorizontal(Color4.Black, Color4.Black.Opacity(0.25f)),
+                                                Colour = ColourInfo.GradientHorizontal(backgroundColour, backgroundColour.Opacity(0.5f)),
                                                 RelativeSizeAxes = Axes.Both,
                                             },
                                         },
@@ -198,6 +202,7 @@ namespace osu.Game.Screens.Select
             isHovered = true;
 
             showHoverElements(true);
+            setHighlighted(true);
             return true;
         }
 
@@ -209,15 +214,21 @@ namespace osu.Game.Screens.Select
                 return;
 
             showHoverElements(false);
+            setHighlighted(false);
         }
 
         protected override bool OnMouseDown(MouseDownEvent e)
         {
-            // We manually track dragging status as to not capture dragging events (so we don't interfere with the scrolling behaviour of our parent)
+            if (!e.IsPressed(MouseButton.Left))
+                return false;
+
+            // Manually track dragging status as to not capture dragging events (so we don't interfere with the scrolling behaviour of our parent)
             isDragged = true;
             IsDraggable = dragHandle.IsHovered;
+
             if (IsDraggable)
-                Alpha = 0.25f;
+                removeButton.Hide();
+
             return false;
         }
 
@@ -225,10 +236,12 @@ namespace osu.Game.Screens.Select
         {
             isDragged = false;
             IsDraggable = false;
-            Alpha = 1;
+            setHighlighted(false);
 
             if (!isHovered)
                 showHoverElements(false);
+            else
+                removeButton.Show();
 
             return base.OnMouseUp(e);
         }
@@ -254,6 +267,13 @@ namespace osu.Game.Screens.Select
                 removeButton.Hide();
                 dragHandle.Hide();
             }
+        }
+
+        private void setHighlighted(bool selected)
+        {
+            var colour = selected ? selectedColour : backgroundColour;
+            background.Colour = colour;
+            gradient.Colour = ColourInfo.GradientHorizontal(colour, colour.Opacity(0.5f));
         }
 
         private class DragHandle : Container
