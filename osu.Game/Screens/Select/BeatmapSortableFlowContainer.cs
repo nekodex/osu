@@ -15,6 +15,8 @@ namespace osu.Game.Screens.Select
     // TODO: extract functionality to framework as a SortableFillFlowContainer or something
     public class BeatmapSortableFlowContainer : FillFlowContainer<BeatmapPlaylistItem>
     {
+        public bool IsDragging => draggedItem != null;
+
         public readonly BindableList<PlaylistItem> Playlist = new BindableList<PlaylistItem>();
         private Vector2 nativeDragPosition;
         private BeatmapPlaylistItem draggedItem;
