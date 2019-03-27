@@ -13,10 +13,10 @@ namespace osu.Game.Screens.Select
     public class BeatmapPlaylist : ScrollContainer<BeatmapSortableFlowContainer>
     {
         private readonly BindableList<PlaylistItem> playlist = new BindableList<PlaylistItem>();
+        private BeatmapSortableFlowContainer sortableFlowContainer;
 
         public BeatmapPlaylist()
         {
-            BeatmapSortableFlowContainer sortableFlowContainer;
             RelativeSizeAxes = Axes.Both;
             ScrollbarOverlapsContent = false;
             Padding = new MarginPadding(5);
@@ -25,6 +25,12 @@ namespace osu.Game.Screens.Select
         }
 
         public void AddItem(PlaylistItem item) => playlist.Add(item);
+
+        public void ClearItems()
+        {
+            playlist.Clear();
+            sortableFlowContainer.Clear();
+        }
 
         protected override void Update()
         {

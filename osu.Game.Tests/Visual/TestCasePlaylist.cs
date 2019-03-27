@@ -3,18 +3,23 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Game.Online.Multiplayer;
 using osu.Game.Rulesets;
 using osu.Game.Screens.Select;
 using osu.Game.Tests.Beatmaps;
+using osuTK;
+using osuTK.Input;
 
 namespace osu.Game.Tests.Visual
 {
     [TestFixture]
-    public class TestCasePlaylist : OsuTestCase
+    public class TestCasePlaylist : ManualInputManagerTestCase
     {
+        private RulesetStore rulesets;
+
         public override IReadOnlyList<Type> RequiredTypes => new[]
         {
             typeof(BeatmapPlaylist),
@@ -29,25 +34,58 @@ namespace osu.Game.Tests.Visual
         [BackgroundDependencyLoader]
         private void load(RulesetStore rulesets)
         {
+            this.rulesets = rulesets;
             Add(playlist = new BeatmapPlaylist());
+        }
 
-            for (int i = 0; i < 4; i++)
+        [SetUp]
+        public void SetUp()
             {
+            lastInsert = 0;
+            playlist.ClearItems();
+            for (int i = 0; i < 4; i++)
                 playlist.AddItem(generatePlaylistItem(rulesets.GetRuleset(lastInsert++ % 4)));
             }
 
-            AddStep("AddItem", () =>
+        [Test]
+        public void AddRemoveTests()
             {
-                playlist.AddItem(generatePlaylistItem(rulesets.GetRuleset(lastInsert++ % 4)));
-            });
+            AddStep("Hover Remove Button", () => { InputManager.MoveMouseTo(getFirstChild().ToScreenSpace(getFirstChild().DrawSize + new Vector2(-20, -getChildDrawableSize().Y * 0.5f))); });
+            AddStep("RemoveItem", () => InputManager.Click(MouseButton.Left));
+            AddAssert("Ensure correct child count", () => getChildCount() == 3);
+            AddStep("AddItem", () => { playlist.AddItem(generatePlaylistItem(rulesets.GetRuleset(lastInsert++ % 4))); });
+            AddAssert("Ensure correct child count", () => getChildCount() == 4);
+        }
 
-            AddStep("AddItem x 25", () =>
+        [Test]
+        public void SortingTests()
+        {
+            AddStep("Hover drag handle", () => { InputManager.MoveMouseTo(getFirstChild().ToScreenSpace(new Vector2(10, getChildDrawableSize().Y * 0.5f))); });
+            AddStep("Click", () => { InputManager.PressButton(MouseButton.Left); });
+            AddStep("Drag downward", () => { InputManager.MoveMouseTo(getFirstChild().ToScreenSpace(new Vector2(10, getChildDrawableSize().Y * 2.5f))); });
+            AddStep("Release", () => { InputManager.ReleaseButton(MouseButton.Left); });
+            AddAssert("Ensure item is now third", () => playlist.Child.GetLayoutPosition(getFirstChild()) == 2);
+
+            AddStep("Hover drag handle", () => { InputManager.MoveMouseTo(getFirstChild().ToScreenSpace(new Vector2(10, getChildDrawableSize().Y * 0.5f))); });
+            AddStep("Click", () => { InputManager.PressButton(MouseButton.Left); });
+            AddStep("Drag upward", () => { InputManager.MoveMouseTo(getFirstChild().ToScreenSpace(new Vector2(10, -getChildDrawableSize().Y * 1.5f))); });
+            AddStep("Release", () => { InputManager.ReleaseButton(MouseButton.Left); });
+            AddAssert("Ensure item is now first again", () => playlist.Child.GetLayoutPosition(getFirstChild()) == 0);
+        }
+
+        private int getChildCount()
             {
-                for (int i = 0; i < 25; i++)
+            return playlist.Child.Children.Count;
+        }
+
+        private BeatmapPlaylistItem getFirstChild()
                 {
-                    playlist.AddItem(generatePlaylistItem(rulesets.GetRuleset(lastInsert++ % 4)));
+            return playlist.Child.Children.First();
                 }
-            });
+
+        private Vector2 getChildDrawableSize()
+        {
+            return getFirstChild().DrawSize;
         }
 
         private PlaylistItem generatePlaylistItem(RulesetInfo ruleset)
