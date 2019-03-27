@@ -22,7 +22,7 @@ using osuTK.Input;
 
 namespace osu.Game.Screens.Select
 {
-    public class BeatmapPlaylistItem : Container
+    public class BeatmapPlaylistItem : ModelBackedDrawable<PlaylistItem>, IRearrangableDrawable<BeatmapPlaylistItem>
     {
         public readonly Bindable<PlaylistItem> PlaylistItem = new Bindable<PlaylistItem>();
 
@@ -31,180 +31,20 @@ namespace osu.Game.Screens.Select
         public bool IsDraggable { get; private set; }
 
         private const int fade_duration = 60;
-        private readonly DragHandle dragHandle;
-        private readonly RemoveButton removeButton;
-        private readonly Box background;
-        private readonly Box gradient;
+        private DragHandle dragHandle;
+        private RemoveButton removeButton;
+        private Box background;
+        private Box gradient;
         private bool hoverSuppressed;
         private bool isDragged;
         private readonly Color4 backgroundColour = Color4.Black;
         private readonly Color4 selectedColour = new Color4(0.1f, 0.1f, 0.1f, 1f);
-        private readonly ModDisplay modDisplay;
-        private readonly UpdateableBeatmapBackgroundSprite cover;
 
-        public BeatmapPlaylistItem(PlaylistItem item)
+        public BeatmapPlaylistItem()
         {
             Height = 50;
             RelativeSizeAxes = Axes.X;
-            Children = new Drawable[]
-            {
-                new Container
-                {
-                    RelativeSizeAxes = Axes.Both,
-                    Padding = new MarginPadding
-                    {
-                        Left = 25,
-                    },
-                    Child = new Container
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Masking = true,
-                        CornerRadius = 5,
-                        EdgeEffect = new EdgeEffectParameters
-                        {
-                            Type = EdgeEffectType.Shadow,
-                            Colour = backgroundColour.Opacity(40),
-                            Radius = 5,
-                        },
-                        Children = new Drawable[]
-                        {
-                            new FillFlowContainer
-                            {
-                                RelativeSizeAxes = Axes.Both,
-                                Children = new Drawable[]
-                                {
-                                    background = new Box
-                                    {
-                                        Colour = backgroundColour,
-                                        RelativeSizeAxes = Axes.Both,
-                                        Width = 0.5f,
-                                    },
-                                    new Container
-                                    {
-                                        RelativeSizeAxes = Axes.Both,
-                                        Width = 0.5f,
-                                        Children = new Drawable[]
-                                        {
-                                            cover = new UpdateableBeatmapBackgroundSprite
-                                            {
-                                                RelativeSizeAxes = Axes.Both,
-                                                FillMode = FillMode.Stretch
-                                            },
-                                            gradient = new Box
-                                            {
-                                                Colour = ColourInfo.GradientHorizontal(backgroundColour, backgroundColour.Opacity(0.5f)),
-                                                RelativeSizeAxes = Axes.Both,
-                                            },
-                                        },
-                                    },
-                                }
-                            },
-                            new FillFlowContainer
-                            {
-                                AutoSizeAxes = Axes.Both,
-                                Direction = FillDirection.Horizontal,
-                                Anchor = Anchor.CentreLeft,
-                                Origin = Anchor.CentreLeft,
-                                Padding = new MarginPadding(7),
-                                Children = new Drawable[]
-                                {
-                                    new DifficultyIcon(item.Beatmap)
-                                    {
-                                        Scale = new Vector2(1.5f)
-                                    },
-                                    new FillFlowContainer
-                                    {
-                                        AutoSizeAxes = Axes.Both,
-                                        Direction = FillDirection.Vertical,
-                                        Padding = new MarginPadding
-                                        {
-                                            Left = 10,
-                                        },
-                                        Children = new Drawable[]
-                                        {
-                                            new FillFlowContainer
-                                            {
-                                                AutoSizeAxes = Axes.Both,
-                                                Spacing = new Vector2(5),
-                                                Children = new Drawable[]
-                                                {
-                                                    new OsuSpriteText
-                                                    {
-                                                        Text = new LocalisedString((item.Beatmap?.BeatmapSet?.Metadata.ArtistUnicode, item.Beatmap?.BeatmapSet?.Metadata.Artist)),
-                                                        Font = OsuFont.GetFont(size: 16, weight: FontWeight.Bold)
-                                                    },
-                                                    new OsuSpriteText
-                                                    {
-                                                        Text = "-",
-                                                        Font = OsuFont.GetFont()
-                                                    },
-                                                    new OsuSpriteText
-                                                    {
-                                                        Text = new LocalisedString((item.Beatmap?.Metadata.TitleUnicode, item.Beatmap?.Metadata.Title)),
-                                                        Font = OsuFont.GetFont()
-                                                    },
-                                                }
-                                            },
-                                            new FillFlowContainer
-                                            {
-                                                AutoSizeAxes = Axes.Both,
-                                                Spacing = new Vector2(10),
-                                                Children = new Drawable[]
-                                                {
-                                                    new OsuSpriteText
-                                                    {
-                                                        Text = item.Beatmap?.Version,
-                                                        Font = OsuFont.GetFont(size: 12)
-                                                    },
-                                                    new OsuSpriteText
-                                                    {
-                                                        Text = $"mapped by {item.Beatmap?.BeatmapSet?.Metadata.Author.Username}",
-                                                        Font = OsuFont.GetFont(size: 12, italics: true),
-                                                        Colour = Color4.Violet,
-                                                    }
-                                                }
-                                            },
-                                        }
-                                    },
-                                }
-                            },
-                            modDisplay = new ModDisplay
-                            {
-                                AutoSizeAxes = Axes.Both,
-                                Anchor = Anchor.CentreRight,
-                                Origin = Anchor.CentreRight,
-                                Position = new Vector2(-30, 0),
-                                DisplayUnrankedText = false,
-                                Scale = new Vector2(0.6f),
-                                HoverEffectEnabled = false,
-                            }
-                        },
-                    }
-                },
-                new Container
-                {
-                    Anchor = Anchor.CentreRight,
-                    Origin = Anchor.CentreRight,
-                    Position = new Vector2(-20, 0),
-                    Child = removeButton = new RemoveButton
-                    {
-                        AutoSizeAxes = Axes.Both,
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
-                        Action = () => RequestRemoval?.Invoke(this)
-                    }
-                },
-                dragHandle = new DragHandle()
-            };
-
-            PlaylistItem.ValueChanged += playlistItemChanged;
-            PlaylistItem.Value = item;
-        }
-
-        private void playlistItemChanged(ValueChangedEvent<PlaylistItem> change)
-        {
-            cover.Beatmap.Value = change.NewValue.Beatmap;
-            modDisplay.Current.Value = change.NewValue?.RequiredMods;
+            PlaylistItem.BindValueChanged(b => Model = b.NewValue);
         }
 
         protected override bool OnHover(HoverEvent e)
@@ -358,6 +198,168 @@ namespace osu.Game.Screens.Select
                 Content.ScaleTo(1, 1000, Easing.OutElastic);
                 return base.OnMouseUp(e);
             }
+        }
+
+        protected override Drawable CreateDrawable(PlaylistItem model)
+        {
+            return new Container
+            {
+                Height = 50,
+                RelativeSizeAxes = Axes.X,
+                Children = new Drawable[]
+                {
+                    new Container
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Padding = new MarginPadding
+                        {
+                            Left = 25,
+                        },
+                        Child = new Container
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Masking = true,
+                            CornerRadius = 5,
+                            EdgeEffect = new EdgeEffectParameters
+                            {
+                                Type = EdgeEffectType.Shadow,
+                                Colour = backgroundColour.Opacity(40),
+                                Radius = 5,
+                            },
+                            Children = new Drawable[]
+                            {
+                                new FillFlowContainer
+                                {
+                                    RelativeSizeAxes = Axes.Both,
+                                    Children = new Drawable[]
+                                    {
+                                        background = new Box
+                                        {
+                                            Colour = backgroundColour,
+                                            RelativeSizeAxes = Axes.Both,
+                                            Width = 0.5f,
+                                        },
+                                        new Container
+                                        {
+                                            RelativeSizeAxes = Axes.Both,
+                                            Width = 0.5f,
+                                            Children = new Drawable[]
+                                            {
+                                                new UpdateableBeatmapBackgroundSprite
+                                                {
+                                                    RelativeSizeAxes = Axes.Both,
+                                                    FillMode = FillMode.Stretch,
+                                                    Beatmap = { Value = model.Beatmap }
+                                                },
+                                                gradient = new Box
+                                                {
+                                                    Colour = ColourInfo.GradientHorizontal(backgroundColour, backgroundColour.Opacity(0.5f)),
+                                                    RelativeSizeAxes = Axes.Both,
+                                                },
+                                            },
+                                        },
+                                    }
+                                },
+                                new FillFlowContainer
+                                {
+                                    AutoSizeAxes = Axes.Both,
+                                    Direction = FillDirection.Horizontal,
+                                    Anchor = Anchor.CentreLeft,
+                                    Origin = Anchor.CentreLeft,
+                                    Padding = new MarginPadding(7),
+                                    Children = new Drawable[]
+                                    {
+                                        new DifficultyIcon(Model.Beatmap)
+                                        {
+                                            Scale = new Vector2(1.5f)
+                                        },
+                                        new FillFlowContainer
+                                        {
+                                            AutoSizeAxes = Axes.Both,
+                                            Direction = FillDirection.Vertical,
+                                            Padding = new MarginPadding
+                                            {
+                                                Left = 10,
+                                            },
+                                            Children = new Drawable[]
+                                            {
+                                                new FillFlowContainer
+                                                {
+                                                    AutoSizeAxes = Axes.Both,
+                                                    Spacing = new Vector2(5),
+                                                    Children = new Drawable[]
+                                                    {
+                                                        new OsuSpriteText
+                                                        {
+                                                            Text = new LocalisedString((Model.Beatmap?.BeatmapSet?.Metadata.ArtistUnicode, Model.Beatmap?.BeatmapSet?.Metadata.Artist)),
+                                                            Font = OsuFont.GetFont(size: 16, weight: FontWeight.Bold)
+                                                        },
+                                                        new OsuSpriteText
+                                                        {
+                                                            Text = "-",
+                                                            Font = OsuFont.GetFont()
+                                                        },
+                                                        new OsuSpriteText
+                                                        {
+                                                            Text = new LocalisedString((Model.Beatmap?.Metadata.TitleUnicode, Model.Beatmap?.Metadata.Title)),
+                                                            Font = OsuFont.GetFont()
+                                                        },
+                                                    }
+                                                },
+                                                new FillFlowContainer
+                                                {
+                                                    AutoSizeAxes = Axes.Both,
+                                                    Spacing = new Vector2(10),
+                                                    Children = new Drawable[]
+                                                    {
+                                                        new OsuSpriteText
+                                                        {
+                                                            Text = Model.Beatmap?.Version,
+                                                            Font = OsuFont.GetFont(size: 12)
+                                                        },
+                                                        new OsuSpriteText
+                                                        {
+                                                            Text = $"mapped by {Model.Beatmap?.BeatmapSet?.Metadata.Author.Username}",
+                                                            Font = OsuFont.GetFont(size: 12, italics: true),
+                                                            Colour = Color4.Violet,
+                                                        }
+                                                    }
+                                                },
+                                            }
+                                        },
+                                    }
+                                },
+                                new ModDisplay
+                                {
+                                    AutoSizeAxes = Axes.Both,
+                                    Anchor = Anchor.CentreRight,
+                                    Origin = Anchor.CentreRight,
+                                    Position = new Vector2(-30, 0),
+                                    DisplayUnrankedText = false,
+                                    Scale = new Vector2(0.6f),
+                                    HoverEffectEnabled = false,
+                                    Current = { Value = Model.RequiredMods }
+                                }
+                            },
+                        }
+                    },
+
+                    new Container
+                    {
+                        Anchor = Anchor.CentreRight,
+                        Origin = Anchor.CentreRight,
+                        Position = new Vector2(-20, 0),
+                        Child = removeButton = new RemoveButton
+                        {
+                            AutoSizeAxes = Axes.Both,
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre,
+                            Action = () => RequestRemoval?.Invoke(this)
+                        }
+                    },
+                    dragHandle = new DragHandle()
+                },
+            };
         }
     }
 }

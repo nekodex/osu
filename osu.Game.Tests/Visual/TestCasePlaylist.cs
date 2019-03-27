@@ -22,8 +22,9 @@ namespace osu.Game.Tests.Visual
 
         public override IReadOnlyList<Type> RequiredTypes => new[]
         {
-            typeof(RearrangableBeatmapListContainer),
             typeof(BeatmapPlaylistItem),
+            typeof(RearrangableBeatmapListContainer),
+            typeof(RearrangableListContainer<BeatmapPlaylistItem>),
         };
 
         private RearrangableBeatmapListContainer playlist;
@@ -97,6 +98,7 @@ namespace osu.Game.Tests.Visual
                 RulesetID = beatmap.BeatmapInfo.Ruleset?.ID ?? 0
             };
 
+            // TODO: Use more realistic mod combinations here
             var instance = ruleset.CreateInstance();
             playlistItem.RequiredMods.AddRange(instance.GetAllMods());
 
