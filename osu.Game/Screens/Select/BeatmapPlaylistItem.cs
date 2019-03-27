@@ -15,6 +15,7 @@ using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Online.Multiplayer;
+using osu.Game.Screens.Play.HUD;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Input;
@@ -38,10 +39,11 @@ namespace osu.Game.Screens.Select
         private bool isDragged;
         private readonly Color4 backgroundColour = Color4.Black;
         private readonly Color4 selectedColour = new Color4(0.1f, 0.1f, 0.1f, 1f);
+        private readonly ModDisplay modDisplay;
+        private readonly UpdateableBeatmapBackgroundSprite cover;
 
         public BeatmapPlaylistItem(PlaylistItem item)
         {
-            UpdateableBeatmapBackgroundSprite cover;
             Height = 50;
             RelativeSizeAxes = Axes.X;
             Children = new Drawable[]
@@ -166,6 +168,16 @@ namespace osu.Game.Screens.Select
                                     },
                                 }
                             },
+                            modDisplay = new ModDisplay
+                            {
+                                AutoSizeAxes = Axes.Both,
+                                Anchor = Anchor.CentreRight,
+                                Origin = Anchor.CentreRight,
+                                Position = new Vector2(-30, 0),
+                                DisplayUnrankedText = false,
+                                Scale = new Vector2(0.6f),
+                                HoverEffectEnabled = false,
+                            }
                         },
                     }
                 },
@@ -185,8 +197,14 @@ namespace osu.Game.Screens.Select
                 dragHandle = new DragHandle()
             };
 
-            PlaylistItem.ValueChanged += change => cover.Beatmap.Value = change.NewValue.Beatmap;
+            PlaylistItem.ValueChanged += playlistItemChanged;
             PlaylistItem.Value = item;
+        }
+
+        private void playlistItemChanged(ValueChangedEvent<PlaylistItem> change)
+        {
+            cover.Beatmap.Value = change.NewValue.Beatmap;
+            modDisplay.Current.Value = change.NewValue?.RequiredMods;
         }
 
         protected override bool OnHover(HoverEvent e)

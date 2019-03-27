@@ -33,7 +33,7 @@ namespace osu.Game.Tests.Visual
 
             for (int i = 0; i < 4; i++)
             {
-                playlist.AddItem(generatePlaylistItem(rulesets.GetRuleset(i)));
+                playlist.AddItem(generatePlaylistItem(rulesets.GetRuleset(lastInsert++ % 4)));
             }
 
             AddStep("AddItem", () =>
@@ -53,13 +53,17 @@ namespace osu.Game.Tests.Visual
         private PlaylistItem generatePlaylistItem(RulesetInfo ruleset)
         {
             var beatmap = new TestBeatmap(ruleset);
-
-            return new PlaylistItem
+            var playlistItem = new PlaylistItem
             {
                 Beatmap = beatmap.BeatmapInfo,
                 Ruleset = beatmap.BeatmapInfo.Ruleset,
                 RulesetID = beatmap.BeatmapInfo.Ruleset?.ID ?? 0
             };
+
+            var instance = ruleset.CreateInstance();
+            playlistItem.RequiredMods.AddRange(instance.GetAllMods());
+
+            return playlistItem;
         }
     }
 }

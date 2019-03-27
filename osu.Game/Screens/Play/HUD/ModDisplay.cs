@@ -24,6 +24,10 @@ namespace osu.Game.Screens.Play.HUD
 
         public bool DisplayUnrankedText = true;
 
+        public bool HoverEffectEnabled = true;
+
+        public override bool HandlePositionalInput => HoverEffectEnabled;
+
         private readonly Bindable<IEnumerable<Mod>> current = new Bindable<IEnumerable<Mod>>();
 
         public Bindable<IEnumerable<Mod>> Current
