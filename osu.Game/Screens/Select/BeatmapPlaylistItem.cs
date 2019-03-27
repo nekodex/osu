@@ -35,7 +35,7 @@ namespace osu.Game.Screens.Select
         private readonly RemoveButton removeButton;
         private readonly Box background;
         private readonly Box gradient;
-        private bool isHovered;
+        private bool hoverSuppressed;
         private bool isDragged;
         private readonly Color4 backgroundColour = Color4.Black;
         private readonly Color4 selectedColour = new Color4(0.1f, 0.1f, 0.1f, 1f);
@@ -212,12 +212,12 @@ namespace osu.Game.Screens.Select
             if (e.IsPressed(MouseButton.Left))
             {
                 if (isDragged)
-                    isHovered = true;
+                    hoverSuppressed = true;
 
                 return true;
             }
 
-            isHovered = true;
+            hoverSuppressed = true;
 
             showHoverElements(true);
             setHighlighted(true);
@@ -226,7 +226,7 @@ namespace osu.Game.Screens.Select
 
         protected override void OnHoverLost(HoverLostEvent e)
         {
-            isHovered = false;
+            hoverSuppressed = false;
 
             if (isDragged)
                 return;
@@ -256,7 +256,7 @@ namespace osu.Game.Screens.Select
             IsDraggable = false;
             setHighlighted(false);
 
-            if (!isHovered)
+            if (!hoverSuppressed)
                 showHoverElements(false);
             else
                 removeButton.Show();
@@ -267,7 +267,7 @@ namespace osu.Game.Screens.Select
         protected override bool OnMouseMove(MouseMoveEvent e)
         {
             // This is to show the current item's buttons after having dragged a different item and landing here (i.e. the OnHover was prevented from being fired)
-            if (!isHovered && !e.IsPressed(MouseButton.Left))
+            if (!hoverSuppressed && !e.IsPressed(MouseButton.Left))
                 showHoverElements(true);
 
             return base.OnMouseMove(e);
