@@ -22,12 +22,11 @@ namespace osu.Game.Tests.Visual
 
         public override IReadOnlyList<Type> RequiredTypes => new[]
         {
-            typeof(BeatmapPlaylist),
+            typeof(RearrangableBeatmapListContainer),
             typeof(BeatmapPlaylistItem),
-            typeof(BeatmapSortableFlowContainer),
         };
 
-        private BeatmapPlaylist playlist;
+        private RearrangableBeatmapListContainer playlist;
 
         private int lastInsert;
 
@@ -35,7 +34,7 @@ namespace osu.Game.Tests.Visual
         private void load(RulesetStore rulesets)
         {
             this.rulesets = rulesets;
-            Add(playlist = new BeatmapPlaylist());
+            Add(playlist = new RearrangableBeatmapListContainer());
         }
 
         [SetUp]
@@ -64,23 +63,23 @@ namespace osu.Game.Tests.Visual
             AddStep("Click", () => { InputManager.PressButton(MouseButton.Left); });
             AddStep("Drag downward", () => { InputManager.MoveMouseTo(getFirstChild().ToScreenSpace(new Vector2(10, getChildDrawableSize().Y * 2.5f))); });
             AddStep("Release", () => { InputManager.ReleaseButton(MouseButton.Left); });
-            AddAssert("Ensure item is now third", () => playlist.Child.GetLayoutPosition(getFirstChild()) == 2);
+            AddAssert("Ensure item is now third", () => playlist.GetLayoutPosition(getFirstChild()) == 2);
 
             AddStep("Hover drag handle", () => { InputManager.MoveMouseTo(getFirstChild().ToScreenSpace(new Vector2(10, getChildDrawableSize().Y * 0.5f))); });
             AddStep("Click", () => { InputManager.PressButton(MouseButton.Left); });
             AddStep("Drag upward", () => { InputManager.MoveMouseTo(getFirstChild().ToScreenSpace(new Vector2(10, -getChildDrawableSize().Y * 1.5f))); });
             AddStep("Release", () => { InputManager.ReleaseButton(MouseButton.Left); });
-            AddAssert("Ensure item is now first again", () => playlist.Child.GetLayoutPosition(getFirstChild()) == 0);
+            AddAssert("Ensure item is now first again", () => playlist.GetLayoutPosition(getFirstChild()) == 0);
         }
 
         private int getChildCount()
             {
-            return playlist.Child.Children.Count;
+            return playlist.Count;
         }
 
         private BeatmapPlaylistItem getFirstChild()
                 {
-            return playlist.Child.Children.First();
+            return playlist.Children.First();
                 }
 
         private Vector2 getChildDrawableSize()
