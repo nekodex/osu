@@ -27,6 +27,7 @@ namespace osu.Game.Overlays.Notifications
         public void Add(Notification notification, float position)
         {
             notifications.Insert((int)position, notification);
+            notification.OnShow();
         }
 
         public IEnumerable<Type> AcceptTypes;
@@ -109,7 +110,12 @@ namespace osu.Game.Overlays.Notifications
 
         private void clearAll()
         {
-            notifications.Children.ForEach(c => c.Close());
+            notifications.Children.First()?.OnHide(); // lol
+            notifications.Children.ForEach(c =>
+            {
+                c.HideFxPlayed = true;
+                c.Close();
+            });
         }
 
         protected override void Update()

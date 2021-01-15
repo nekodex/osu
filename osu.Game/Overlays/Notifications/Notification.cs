@@ -3,6 +3,8 @@
 
 using System;
 using osu.Framework.Allocation;
+using osu.Framework.Audio;
+using osu.Framework.Audio.Sample;
 using osu.Framework.Extensions.Color4Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
@@ -39,6 +41,11 @@ namespace osu.Game.Overlays.Notifications
         /// Should we show at the top of our section on display?
         /// </summary>
         public virtual bool DisplayOnTop => true;
+
+        private SampleChannel samplePopIn;
+        private SampleChannel samplePopOut;
+        protected virtual string PopInSampleName => "UI/notification-pop-in";
+        protected virtual string PopOutSampleName => "UI/overlay-pop-out";
 
         protected NotificationLight Light;
         private readonly CloseButton closeButton;
@@ -120,6 +127,13 @@ namespace osu.Game.Overlays.Notifications
             });
         }
 
+        [BackgroundDependencyLoader]
+        private void load(AudioManager audio)
+        {
+            samplePopIn = audio.Samples.Get(PopInSampleName);
+            samplePopOut = audio.Samples.Get(PopOutSampleName);
+        }
+
         protected override bool OnHover(HoverEvent e)
         {
             closeButton.FadeIn(75);
@@ -148,6 +162,21 @@ namespace osu.Game.Overlays.Notifications
             NotificationContent.MoveToX(0, 500, Easing.OutQuint);
         }
 
+        public void OnShow()
+        {
+            samplePopIn?.Play();
+        }
+
+        public bool HideFxPlayed;
+
+        public void OnHide()
+        {
+            if (HideFxPlayed) return;
+
+            samplePopOut?.Play();
+            HideFxPlayed = true;
+        }
+
         public bool WasClosed;
 
         public virtual void Close()
@@ -158,6 +187,7 @@ namespace osu.Game.Overlays.Notifications
 
             Closed?.Invoke();
             this.FadeOut(100);
+            OnHide();
             Expire();
         }
 
