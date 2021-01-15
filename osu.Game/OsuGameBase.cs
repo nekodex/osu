@@ -163,6 +163,7 @@ namespace osu.Game
                 VersionHash = $"{Version}-{RuntimeInfo.OS}".ComputeMD5Hash();
             }
 
+            Resources.AddStore(new StorageBackedResourceStore(new DesktopStorage("/Users/jamie/Sandbox/derp", (DesktopGameHost)Host)));
             Resources.AddStore(new DllResourceStore(OsuResources.ResourceAssembly));
 
             dependencies.Cache(contextFactory = new DatabaseContextFactory(Storage));

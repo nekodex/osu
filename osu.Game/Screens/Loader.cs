@@ -35,8 +35,8 @@ namespace osu.Game.Screens
 
         protected virtual OsuScreen CreateLoadableScreen()
         {
-            if (showDisclaimer)
-                return new Disclaimer(getIntroSequence());
+            // if (showDisclaimer)
+            //     return new Disclaimer(getIntroSequence());
 
             return getIntroSequence();
         }
