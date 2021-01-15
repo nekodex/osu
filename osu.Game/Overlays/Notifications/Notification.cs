@@ -42,9 +42,11 @@ namespace osu.Game.Overlays.Notifications
         /// </summary>
         public virtual bool DisplayOnTop => true;
 
+        private SampleChannel sampleImportantPopIn;
         private SampleChannel samplePopIn;
         private SampleChannel samplePopOut;
         protected virtual string PopInSampleName => "UI/notification-pop-in";
+        protected virtual string ImportantPopInSampleName => "UI/important-notification-pop-in";
         protected virtual string PopOutSampleName => "UI/overlay-pop-out";
 
         protected NotificationLight Light;
@@ -130,6 +132,7 @@ namespace osu.Game.Overlays.Notifications
         [BackgroundDependencyLoader]
         private void load(AudioManager audio)
         {
+            sampleImportantPopIn = audio.Samples.Get(ImportantPopInSampleName);
             samplePopIn = audio.Samples.Get(PopInSampleName);
             samplePopOut = audio.Samples.Get(PopOutSampleName);
         }
@@ -164,7 +167,10 @@ namespace osu.Game.Overlays.Notifications
 
         public void OnShow()
         {
-            samplePopIn?.Play();
+            if (IsImportant)
+                sampleImportantPopIn?.Play();
+            else
+                samplePopIn?.Play();
         }
 
         public bool HideFxPlayed;
