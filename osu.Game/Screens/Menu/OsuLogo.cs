@@ -281,7 +281,14 @@ namespace osu.Game.Screens.Menu
             if (beatIndex < 0) return;
 
             if (IsHovered)
+            {
+                if (beatIndex % (int)timingPoint.TimeSignature == 0)
+                    sampleBeat.Frequency.Value = 1.25;
+                else
+                    sampleBeat.Frequency.Value = 1;
+
                 this.Delay(early_activation).Schedule(() => sampleBeat.Play());
+            }
 
             logoBeatContainer
                 .ScaleTo(1 - 0.02f * amplitudeAdjust, early_activation, Easing.Out).Then()
