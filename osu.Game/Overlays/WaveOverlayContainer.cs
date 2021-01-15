@@ -18,6 +18,9 @@ namespace osu.Game.Overlays
 
         protected override bool StartHidden => true;
 
+        protected override string PopInSampleName => "UI/wave-pop-in";
+        // protected override string PopOutSampleName => "UI/player-pop-out";
+
         protected WaveOverlayContainer()
         {
             AddInternal(Waves = new WaveContainer
