@@ -3,6 +3,8 @@
 
 using System;
 using osu.Framework.Allocation;
+using osu.Framework.Audio;
+using osu.Framework.Audio.Sample;
 using osu.Framework.Configuration.Tracking;
 using osu.Framework.Extensions.Color4Extensions;
 using osu.Framework.Graphics;
@@ -18,6 +20,15 @@ namespace osu.Game.Overlays.OSD
     public class TrackedSettingToast : Toast
     {
         private const int lights_bottom_margin = 40;
+
+        private readonly int selectedOption = -1;
+        private readonly int optionCount;
+
+        private SampleChannel sampleEnable;
+        private SampleChannel sampleDisable;
+        private SampleChannel sampleChange;
+
+        private bool didPlay;
 
         public TrackedSettingToast(SettingDescription description)
             : base(description.Name, description.Value, description.Shortcut)
@@ -46,9 +57,6 @@ namespace osu.Game.Overlays.OSD
                 }
             };
 
-            int optionCount = 0;
-            int selectedOption = -1;
-
             switch (description.RawValue)
             {
                 case bool val:
@@ -67,6 +75,36 @@ namespace osu.Game.Overlays.OSD
 
             for (int i = 0; i < optionCount; i++)
                 optionLights.Add(new OptionLight { Glowing = i == selectedOption });
+        }
+
+        protected override void Update()
+        {
+            if (didPlay) return;
+
+            if (optionCount == 1)
+            {
+                if (selectedOption == 0)
+                    sampleEnable?.Play();
+                else
+                    sampleDisable?.Play();
+            }
+            else
+            {
+                sampleChange.Frequency.Value = 1 + (((double)selectedOption / (optionCount - 1)) * 0.25f);
+                sampleChange?.Play();
+            }
+
+            didPlay = true;
+
+            base.Update();
+        }
+
+        [BackgroundDependencyLoader]
+        private void load(AudioManager audio)
+        {
+            sampleEnable = audio.Samples.Get(@"UI/osd-on");
+            sampleDisable = audio.Samples.Get(@"UI/osd-off");
+            sampleChange = audio.Samples.Get(@"UI/osd-change");
         }
 
         private class OptionLight : Container
