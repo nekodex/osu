@@ -64,7 +64,7 @@ namespace osu.Game.Graphics.UserInterface
                     Origin = Anchor.CentreRight,
                     Margin = new MarginPadding { Right = nub_padding },
                 },
-                new HoverClickSounds()
+                new HoverClickSounds(HoverSampleSet.NoClick)
             };
 
             Nub.Current.BindTo(Current);

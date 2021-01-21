@@ -52,6 +52,7 @@ namespace osu.Game.Graphics.UserInterface
 
             if (enoughTimePassedSinceLastPlayback)
             {
+                // TODO: check sampleHover presence
                 sampleHover.Frequency.Value = 0.96 + RNG.NextDouble(0.08);
                 sampleHover?.Play();
                 lastPlaybackTime.Value = Time.Current;
@@ -73,6 +74,9 @@ namespace osu.Game.Graphics.UserInterface
         Soft,
 
         [Description("-toolbar")]
-        Toolbar
+        Toolbar,
+
+        [Description("-noclick")]
+        NoClick
     }
 }
