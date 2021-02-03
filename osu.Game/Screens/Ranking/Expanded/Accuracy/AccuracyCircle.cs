@@ -5,16 +5,16 @@ using System;
 using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
+using osu.Framework.Bindables;
 using osu.Framework.Extensions.Color4Extensions;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Audio;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Utils;
-using osu.Game.Audio;
 using osu.Game.Graphics;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Scoring;
-using osu.Game.Skinning;
 using osuTK;
 
 namespace osu.Game.Screens.Ranking.Expanded.Accuracy
@@ -83,7 +83,38 @@ namespace osu.Game.Screens.Ranking.Expanded.Accuracy
         private Container<RankBadge> badges;
         private RankText rankText;
 
-        private SkinnableSound applauseSound;
+        private DrawableSample scoreTickSound;
+        private DrawableSample badgeTickSound;
+        private DrawableSample badgeMaxSound;
+        private DrawableSample rankImpactSound;
+        private DrawableSample rankImpactFailSound;
+        private DrawableSample swooshUpSound;
+
+        private Bindable<double> tickPlaybackRate;
+        private double lastTickPlaybackTime;
+        private bool isTicking;
+
+        // TODO: temp TestScene hooks
+        public Bindable<double> SwooshPreDelay = new Bindable<double>(2200);
+        public Bindable<double> DebounceRateStart = new Bindable<double>(10);
+        public Bindable<double> DebounceRateStop = new Bindable<double>(300);
+        public Bindable<string> ScoreTickSampleName = new Bindable<string>("badge-dink-2");
+        public Bindable<double> TickPitchFactor = new Bindable<double>(0.1);
+        public Bindable<bool> PlayTicks = new Bindable<bool>(true);
+        public Bindable<bool> PlayImpact = new Bindable<bool>(true);
+        public Bindable<bool> PlayBadgeDinks = new Bindable<bool>(true);
+        public Bindable<bool> PlaySwoosh = new Bindable<bool>(true);
+        public Bindable<bool> ScoreTickIsLoop = new Bindable<bool>(false);
+
+        public Bindable<double> TickVolumeStart = new Bindable<double>(0.6);
+        public Bindable<double> TickVolumeEnd = new Bindable<double>(1.0);
+        public Bindable<double> ImpactVolume = new Bindable<double>(1.0);
+        public Bindable<double> BadgeDinkVolume = new Bindable<double>(0.5);
+        public Bindable<double> SwooshVolume = new Bindable<double>(0.5);
+
+        public Bindable<Easing> ScoreTickRateEasing = new Bindable<Easing>(Easing.OutSine);
+        public Bindable<Easing> ScoreTickPitchEasing = new Bindable<Easing>(Easing.OutSine);
+        public Bindable<Easing> ScoreTickVolumeEasing = new Bindable<Easing>(Easing.OutSine);
 
         public AccuracyCircle(ScoreInfo score, bool withFlair)
         {
@@ -214,10 +245,43 @@ namespace osu.Game.Screens.Ranking.Expanded.Accuracy
 
             if (withFlair)
             {
-                AddInternal(applauseSound = score.Rank >= ScoreRank.A
-                    ? new SkinnableSound(new SampleInfo("Results/rankpass", "applause"))
-                    : new SkinnableSound(new SampleInfo("Results/rankfail")));
+                tickPlaybackRate = new Bindable<double>(DebounceRateStart.Value);
+
+                AddInternal(badgeTickSound = new DrawableSample(audio.Samples.Get("Results/badge-dink-3"))
+                {
+                    Volume = { BindTarget = BadgeDinkVolume }
+                });
+                AddInternal(badgeMaxSound = new DrawableSample(audio.Samples.Get("Results/badge-dink-8"))
+                {
+                    Volume = { BindTarget = BadgeDinkVolume }
+                });
+                AddInternal(rankImpactSound = new DrawableSample(audio.Samples.Get("Results/rank-impact"))
+                {
+                    Volume = { BindTarget = ImpactVolume }
+                });
+                AddInternal(swooshUpSound = new DrawableSample(audio.Samples.Get("Results/swoosh-up-2"))
+                {
+                    Volume = { BindTarget = SwooshVolume }
+                });
+                AddInternal(rankImpactFailSound = new DrawableSample(audio.Samples.Get("Results/rank-impact-fail-3"))
+                {
+                    Volume = { BindTarget = ImpactVolume }
+                });
             }
+
+            ScoreTickSampleName.BindValueChanged((sample) =>
+            {
+                if (!withFlair) return;
+
+                scoreTickSound?.Expire();
+                var sampleToLoad = sample.NewValue;
+
+                AddInternal(scoreTickSound = new DrawableSample(audio.Samples.Get($"Results/{sampleToLoad}"))
+                {
+                    Looping = ScoreTickIsLoop.Value,
+                    Frequency = { Value = 1.0 }
+                });
+            }, true);
         }
 
         private ScoreRank getRank(ScoreRank rank)
@@ -228,11 +292,28 @@ namespace osu.Game.Screens.Ranking.Expanded.Accuracy
             return rank;
         }
 
+        protected override void Update()
+        {
+            base.Update();
+
+            if (!PlayTicks.Value || !isTicking || ScoreTickIsLoop.Value) return;
+
+            bool enoughTimePassedSinceLastPlayback = Clock.CurrentTime - lastTickPlaybackTime >= tickPlaybackRate.Value;
+
+            if (!enoughTimePassedSinceLastPlayback) return;
+
+            scoreTickSound?.Play();
+            lastTickPlaybackTime = Clock.CurrentTime;
+        }
+
         protected override void LoadComplete()
         {
             base.LoadComplete();
 
             this.ScaleTo(0).Then().ScaleTo(1, APPEAR_DURATION, Easing.OutQuint);
+
+            if (PlaySwoosh.Value)
+                this.Delay(SwooshPreDelay.Value).Schedule(() => swooshUpSound?.Play());
 
             using (BeginDelayedSequence(RANK_CIRCLE_TRANSFORM_DELAY, true))
                 innerMask.FillTo(1f, RANK_CIRCLE_TRANSFORM_DURATION, ACCURACY_TRANSFORM_EASING);
@@ -243,6 +324,28 @@ namespace osu.Game.Screens.Ranking.Expanded.Accuracy
 
                 accuracyCircle.FillTo(targetAccuracy, ACCURACY_TRANSFORM_DURATION, ACCURACY_TRANSFORM_EASING);
 
+                // sound fun
+                if (PlayTicks.Value)
+                {
+                    scoreTickSound?.FrequencyTo(1 + (targetAccuracy * TickPitchFactor.Value), ACCURACY_TRANSFORM_DURATION, ScoreTickPitchEasing.Value);
+                    scoreTickSound?.VolumeTo(TickVolumeStart.Value).Then().VolumeTo(TickVolumeEnd.Value, ACCURACY_TRANSFORM_DURATION, ScoreTickVolumeEasing.Value);
+
+                    if (!ScoreTickIsLoop.Value)
+                        this.TransformBindableTo(tickPlaybackRate, DebounceRateStop.Value, ACCURACY_TRANSFORM_DURATION, ScoreTickRateEasing.Value);
+                }
+
+                Schedule(() =>
+                {
+                    if (!PlayTicks.Value) return;
+
+                    if (ScoreTickIsLoop.Value)
+                        scoreTickSound?.Play();
+                    else
+                        isTicking = true;
+                });
+
+                int badgeNum = 0;
+
                 foreach (var badge in badges)
                 {
                     if (badge.Accuracy > score.Accuracy)
@@ -251,13 +354,48 @@ namespace osu.Game.Screens.Ranking.Expanded.Accuracy
                     using (BeginDelayedSequence(inverseEasing(ACCURACY_TRANSFORM_EASING, Math.Min(1 - virtual_ss_percentage, badge.Accuracy) / targetAccuracy) * ACCURACY_TRANSFORM_DURATION, true))
                     {
                         badge.Appear();
+                        Schedule(() =>
+                        {
+                            if (badgeTickSound == null || badgeMaxSound == null || !PlayBadgeDinks.Value) return;
+
+                            if (badgeNum < (badges.Count - 1))
+                            {
+                                badgeTickSound.Frequency.Value = 1 + (badgeNum++ * 0.05);
+                                // badgeTickSound.Volume.Value = 0.5;
+                                badgeTickSound?.Play();
+                            }
+                            else
+                            {
+                                badgeMaxSound.Frequency.Value = 1 + (badgeNum++ * 0.05);
+                                // badgeMaxSound.Volume.Value = 0.6;
+                                badgeMaxSound?.Play();
+
+                                if (ScoreTickIsLoop.Value)
+                                    scoreTickSound?.Stop();
+                                else
+                                    isTicking = false;
+                            }
+                        });
                     }
                 }
 
                 using (BeginDelayedSequence(TEXT_APPEAR_DELAY, true))
                 {
-                    this.Delay(-1440).Schedule(() => applauseSound?.Play());
                     rankText.Appear();
+                    Schedule(() =>
+                    {
+                        if (ScoreTickIsLoop.Value)
+                            scoreTickSound?.Stop();
+                        else
+                            isTicking = false;
+
+                        if (!PlayImpact.Value) return;
+
+                        if (score.Rank >= ScoreRank.A)
+                            rankImpactSound?.Play();
+                        else
+                            rankImpactFailSound?.Play();
+                    });
                 }
             }
         }
