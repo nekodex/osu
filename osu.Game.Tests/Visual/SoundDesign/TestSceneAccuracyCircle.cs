@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
@@ -13,8 +14,11 @@ using osu.Framework.Graphics.Audio;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
+using osu.Framework.Platform;
+using osu.Game.Configuration;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
+using osu.Game.Graphics.UserInterface;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Settings;
@@ -30,83 +34,14 @@ using osuTK;
 
 namespace osu.Game.Tests.Visual.SoundDesign
 {
+    [Serializable]
     public class TestSceneAccuracyCircle : OsuTestScene
     {
         [Resolved]
         private AudioManager audioManager { get; set; }
 
-        private Bindable<bool> playTicks = new Bindable<bool>(true);
-        private Bindable<bool> playImpact = new Bindable<bool>(true);
-        private Bindable<bool> playBadgeSounds = new Bindable<bool>(true);
-        private Bindable<bool> playSwooshSound = new Bindable<bool>(true);
-        private Bindable<bool> tickIsLoop = new Bindable<bool>(false);
-        private Bindable<string> tickSampleName = new Bindable<string>("badge-dink-2");
-
-        private BindableDouble tickPitchFactor = new BindableDouble(1)
-        {
-            MinValue = 0.5,
-            MaxValue = 3,
-            Precision = 0.1,
-        };
-
-        private BindableDouble tickDebounceStart = new BindableDouble(10)
-        {
-            MinValue = 1,
-            MaxValue = 100,
-        };
-
-        private BindableDouble tickDebounceEnd = new BindableDouble(400)
-        {
-            MinValue = 100,
-            MaxValue = 1000,
-        };
-
-        private BindableDouble swooshPreDelay = new BindableDouble(450)
-        {
-            MinValue = -1000,
-            MaxValue = 1000,
-        };
-
-        private Bindable<Easing> tickRateEasing = new Bindable<Easing>(Easing.None);
-        private Bindable<Easing> tickPitchEasing = new Bindable<Easing>(Easing.None);
-        private Bindable<Easing> tickVolumeEasing = new Bindable<Easing>(Easing.OutSine);
-
-        private BindableDouble tickVolumeStart = new BindableDouble(0.6)
-        {
-            MinValue = 0,
-            MaxValue = 1,
-            Precision = 0.1,
-        };
-
-        private BindableDouble tickVolumeEnd = new BindableDouble(1.0)
-        {
-            MinValue = 0,
-            MaxValue = 1,
-            Precision = 0.1,
-        };
-
-        private BindableDouble impactVolume = new BindableDouble(1.0)
-        {
-            MinValue = 0,
-            MaxValue = 1,
-            Precision = 0.1,
-        };
-
-        private BindableDouble badgeDinkVolume = new BindableDouble(0.5)
-        {
-            MinValue = 0,
-            MaxValue = 1,
-            Precision = 0.1,
-        };
-
-        private BindableDouble swooshVolume = new BindableDouble(0.5)
-        {
-            MinValue = 0,
-            MaxValue = 1,
-            Precision = 0.1,
-        };
-
         private DrawableSample previewSampleChannel;
+        private AccuracyCircleAdjustments settings = new AccuracyCircleAdjustments();
 
         [Test]
         public void TestLowDRank()
@@ -227,68 +162,68 @@ namespace osu.Game.Tests.Visual.SoundDesign
                                             new SettingsCheckbox
                                             {
                                                 LabelText = "Play Ticks",
-                                                Current = { BindTarget = playTicks }
+                                                Current = { BindTarget = settings.playTicks }
                                             },
                                             new SettingsSlider<double>
                                             {
                                                 LabelText = "Tick Volume (Start)",
-                                                Current = { BindTarget = tickVolumeStart }
+                                                Current = { BindTarget = settings.tickVolumeStart }
                                             },
                                             new SettingsSlider<double>
                                             {
                                                 LabelText = "Tick Volume (End)",
-                                                Current = { BindTarget = tickVolumeEnd }
+                                                Current = { BindTarget = settings.tickVolumeEnd }
                                             },
                                             new SettingsCheckbox
                                             {
                                                 LabelText = "Play Impact",
-                                                Current = { BindTarget = playImpact }
+                                                Current = { BindTarget = settings.playImpact }
                                             },
                                             new SettingsSlider<double>
                                             {
                                                 LabelText = "Impact Volume",
-                                                Current = { BindTarget = impactVolume }
+                                                Current = { BindTarget = settings.impactVolume }
                                             },
                                             new SettingsCheckbox
                                             {
                                                 LabelText = "Play BadgeSounds",
-                                                Current = { BindTarget = playBadgeSounds }
+                                                Current = { BindTarget = settings.playBadgeSounds }
                                             },
                                             new SettingsSlider<double>
                                             {
                                                 LabelText = "Badge Dink Volume",
-                                                Current = { BindTarget = badgeDinkVolume }
+                                                Current = { BindTarget = settings.badgeDinkVolume }
                                             },
                                             new SettingsCheckbox
                                             {
                                                 LabelText = "Play Swoosh",
-                                                Current = { BindTarget = playSwooshSound }
+                                                Current = { BindTarget = settings.playSwooshSound }
                                             },
                                             new SettingsSlider<double>
                                             {
                                                 LabelText = "Swoosh Volume",
-                                                Current = { BindTarget = swooshVolume }
+                                                Current = { BindTarget = settings.swooshVolume }
                                             },
 
                                             new SettingsSlider<double>
                                             {
                                                 LabelText = "Swoosh Pre-Delay",
-                                                Current = { BindTarget = swooshPreDelay }
+                                                Current = { BindTarget = settings.swooshPreDelay }
                                             },
                                             new SettingsCheckbox
                                             {
                                                 LabelText = "Loop ScoreTick",
-                                                Current = { BindTarget = tickIsLoop }
+                                                Current = { BindTarget = settings.tickIsLoop }
                                             },
                                             new SettingsSlider<double>
                                             {
                                                 LabelText = "ScoreTick Start Debounce Rate",
-                                                Current = { BindTarget = tickDebounceStart }
+                                                Current = { BindTarget = settings.tickDebounceStart }
                                             },
                                             new SettingsSlider<double>
                                             {
                                                 LabelText = "ScoreTick End Debounce Rate",
-                                                Current = { BindTarget = tickDebounceEnd }
+                                                Current = { BindTarget = settings.tickDebounceEnd }
                                             },
                                             new OsuSpriteText
                                             {
@@ -297,12 +232,12 @@ namespace osu.Game.Tests.Visual.SoundDesign
                                             },
                                             new SettingsEnumDropdown<Easing>
                                             {
-                                                Current = { BindTarget = tickRateEasing }
+                                                Current = { BindTarget = settings.tickRateEasing }
                                             },
                                             new SettingsSlider<double>
                                             {
                                                 LabelText = "ScoreTick Pitch Factor",
-                                                Current = { BindTarget = tickPitchFactor }
+                                                Current = { BindTarget = settings.tickPitchFactor }
                                             },
                                             new OsuSpriteText
                                             {
@@ -311,7 +246,7 @@ namespace osu.Game.Tests.Visual.SoundDesign
                                             },
                                             new SettingsEnumDropdown<Easing>
                                             {
-                                                Current = { BindTarget = tickPitchEasing }
+                                                Current = { BindTarget = settings.tickPitchEasing }
                                             },
                                             new OsuSpriteText
                                             {
@@ -320,7 +255,7 @@ namespace osu.Game.Tests.Visual.SoundDesign
                                             },
                                             new SettingsEnumDropdown<Easing>
                                             {
-                                                Current = { BindTarget = tickVolumeEasing }
+                                                Current = { BindTarget = settings.tickVolumeEasing }
                                             },
                                             new OsuSpriteText
                                             {
@@ -330,13 +265,25 @@ namespace osu.Game.Tests.Visual.SoundDesign
                                             new OsuSpriteText
                                             {
                                                 Padding = new MarginPadding { Left = SettingsPanel.CONTENT_MARGINS * 2 },
-                                                Current = { BindTarget = tickSampleName }
+                                                Current = { BindTarget = settings.tickSampleName }
                                             },
                                             sampleFileSelector = new FileSelector("/Users/jamie/Sandbox/derp/Samples/Results")
                                             {
                                                 RelativeSizeAxes = Axes.X,
                                                 Height = 500,
-                                            }
+                                            },
+                                            new TriangleButton
+                                            {
+                                                Text = "Save",
+                                                Action = save,
+                                                RelativeSizeAxes = Axes.X,
+                                            },
+                                            new TriangleButton
+                                            {
+                                                Text = "Load",
+                                                Action = load,
+                                                RelativeSizeAxes = Axes.X,
+                                            },
                                         }
                                     },
                                 },
@@ -360,24 +307,24 @@ namespace osu.Game.Tests.Visual.SoundDesign
                                     Anchor = Anchor.Centre,
                                     Origin = Anchor.Centre,
                                     Size = new Vector2(230),
-                                    DebounceRateStart = { BindTarget = tickDebounceStart },
-                                    DebounceRateStop = { BindTarget = tickDebounceEnd },
-                                    PlayTicks = { BindTarget = playTicks },
-                                    TickVolumeStart = { BindTarget = tickVolumeStart },
-                                    TickVolumeEnd = { BindTarget = tickVolumeEnd },
-                                    PlayImpact = { BindTarget = playImpact },
-                                    ImpactVolume = { BindTarget = impactVolume },
-                                    PlayBadgeDinks = { BindTarget = playBadgeSounds },
-                                    BadgeDinkVolume = { BindTarget = badgeDinkVolume },
-                                    PlaySwoosh = { BindTarget = playSwooshSound },
-                                    SwooshVolume = { BindTarget = swooshVolume },
-                                    ScoreTickSampleName = { BindTarget = tickSampleName },
-                                    TickPitchFactor = { BindTarget = tickPitchFactor },
-                                    ScoreTickIsLoop = { BindTarget = tickIsLoop },
-                                    ScoreTickPitchEasing = { BindTarget = tickPitchEasing },
-                                    ScoreTickRateEasing = { BindTarget = tickRateEasing },
-                                    ScoreTickVolumeEasing = { BindTarget = tickVolumeEasing },
-                                    SwooshPreDelay = { BindTarget = swooshPreDelay }
+                                    DebounceRateStart = { BindTarget = settings.tickDebounceStart },
+                                    DebounceRateStop = { BindTarget = settings.tickDebounceEnd },
+                                    PlayTicks = { BindTarget = settings.playTicks },
+                                    TickVolumeStart = { BindTarget = settings.tickVolumeStart },
+                                    TickVolumeEnd = { BindTarget = settings.tickVolumeEnd },
+                                    PlayImpact = { BindTarget = settings.playImpact },
+                                    ImpactVolume = { BindTarget = settings.impactVolume },
+                                    PlayBadgeDinks = { BindTarget = settings.playBadgeSounds },
+                                    BadgeDinkVolume = { BindTarget = settings.badgeDinkVolume },
+                                    PlaySwoosh = { BindTarget = settings.playSwooshSound },
+                                    SwooshVolume = { BindTarget = settings.swooshVolume },
+                                    ScoreTickSampleName = { BindTarget = settings.tickSampleName },
+                                    TickPitchFactor = { BindTarget = settings.tickPitchFactor },
+                                    ScoreTickIsLoop = { BindTarget = settings.tickIsLoop },
+                                    ScoreTickPitchEasing = { BindTarget = settings.tickPitchEasing },
+                                    ScoreTickRateEasing = { BindTarget = settings.tickRateEasing },
+                                    ScoreTickVolumeEasing = { BindTarget = settings.tickVolumeEasing },
+                                    SwooshPreDelay = { BindTarget = settings.swooshPreDelay }
                                 }
                             }
                         }
@@ -393,9 +340,30 @@ namespace osu.Game.Tests.Visual.SoundDesign
                 previewSampleChannel = new DrawableSample(audioManager.Samples.Get($"Results/{sample}"));
                 previewSampleChannel?.Play();
 
-                tickSampleName.Value = sample;
+                settings.tickSampleName.Value = sample;
             };
         });
+
+        [Resolved]
+        private GameHost host { get; set; }
+
+        private void save()
+        {
+            File.WriteAllText(host.Storage.GetFullPath("out.json"), JsonConvert.SerializeObject(settings));
+        }
+
+        private void load()
+        {
+            var saved = JsonConvert.DeserializeObject<AccuracyCircleAdjustments>(File.ReadAllText(host.Storage.GetFullPath("out.json")));
+
+            foreach (var (_, prop) in saved.GetSettingsSourceProperties())
+            {
+                var targetBindable = (IBindable)prop.GetValue(settings);
+                var sourceBindable = (IBindable)prop.GetValue(saved);
+
+                targetBindable?.Parse(sourceBindable);
+            }
+        }
 
         private ScoreInfo createScore() => new ScoreInfo
         {
@@ -418,6 +386,105 @@ namespace osu.Game.Tests.Visual.SoundDesign
                 { HitResult.Good, 100 },
                 { HitResult.Great, 300 },
             }
+        };
+    }
+
+    public class AccuracyCircleAdjustments
+    {
+        [SettingSource("setting")]
+        public Bindable<bool> playTicks { get; } = new Bindable<bool>(true);
+
+        [SettingSource("setting")]
+        public Bindable<bool> playImpact { get; } = new Bindable<bool>(true);
+
+        [SettingSource("setting")]
+        public Bindable<bool> playBadgeSounds { get; } = new Bindable<bool>(true);
+
+        [SettingSource("setting")]
+        public Bindable<bool> playSwooshSound { get; } = new Bindable<bool>(true);
+
+        [SettingSource("setting")]
+        public Bindable<bool> tickIsLoop { get; } = new Bindable<bool>(false);
+
+        [SettingSource("setting")]
+        public Bindable<string> tickSampleName { get; } = new Bindable<string>("badge-dink-2");
+
+        [SettingSource("setting")]
+        public BindableDouble tickPitchFactor { get; } = new BindableDouble(1)
+        {
+            MinValue = 0.5,
+            MaxValue = 3,
+            Precision = 0.1,
+        };
+
+        [SettingSource("setting")]
+        public BindableDouble tickDebounceStart { get; } = new BindableDouble(10)
+        {
+            MinValue = 1,
+            MaxValue = 100,
+        };
+
+        [SettingSource("setting")]
+        public BindableDouble tickDebounceEnd { get; } = new BindableDouble(400)
+        {
+            MinValue = 100,
+            MaxValue = 1000,
+        };
+
+        [SettingSource("setting")]
+        public BindableDouble swooshPreDelay { get; } = new BindableDouble(450)
+        {
+            MinValue = -1000,
+            MaxValue = 1000,
+        };
+
+        [SettingSource("setting")]
+        public Bindable<Easing> tickRateEasing { get; } = new Bindable<Easing>(Easing.None);
+
+        [SettingSource("setting")]
+        public Bindable<Easing> tickPitchEasing { get; } = new Bindable<Easing>(Easing.None);
+
+        [SettingSource("setting")]
+        public Bindable<Easing> tickVolumeEasing { get; } = new Bindable<Easing>(Easing.OutSine);
+
+        [SettingSource("setting")]
+        public BindableDouble tickVolumeStart { get; } = new BindableDouble(0.6)
+        {
+            MinValue = 0,
+            MaxValue = 1,
+            Precision = 0.1,
+        };
+
+        [SettingSource("setting")]
+        public BindableDouble tickVolumeEnd { get; } = new BindableDouble(1.0)
+        {
+            MinValue = 0,
+            MaxValue = 1,
+            Precision = 0.1,
+        };
+
+        [SettingSource("setting")]
+        public BindableDouble impactVolume { get; } = new BindableDouble(1.0)
+        {
+            MinValue = 0,
+            MaxValue = 1,
+            Precision = 0.1,
+        };
+
+        [SettingSource("setting")]
+        public BindableDouble badgeDinkVolume { get; } = new BindableDouble(0.5)
+        {
+            MinValue = 0,
+            MaxValue = 1,
+            Precision = 0.1,
+        };
+
+        [SettingSource("setting")]
+        public BindableDouble swooshVolume { get; } = new BindableDouble(0.5)
+        {
+            MinValue = 0,
+            MaxValue = 1,
+            Precision = 0.1,
         };
     }
 }
