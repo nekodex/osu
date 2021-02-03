@@ -16,6 +16,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Platform;
 using osu.Game.Configuration;
+using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
@@ -42,6 +43,16 @@ namespace osu.Game.Tests.Visual.SoundDesign
 
         private DrawableSample previewSampleChannel;
         private AccuracyCircleAdjustments settings = new AccuracyCircleAdjustments();
+        private OsuTextBox saveFilename;
+
+        private Storage presetStorage;
+        private FileSelector presetFileSelector;
+
+        [BackgroundDependencyLoader]
+        private void load(GameHost host)
+        {
+            presetStorage = host.Storage.GetStorageForDirectory("presets");
+        }
 
         [Test]
         public void TestLowDRank()
@@ -270,20 +281,29 @@ namespace osu.Game.Tests.Visual.SoundDesign
                                             sampleFileSelector = new FileSelector("/Users/jamie/Sandbox/derp/Samples/Results")
                                             {
                                                 RelativeSizeAxes = Axes.X,
-                                                Height = 500,
+                                                Height = 300,
+                                            },
+                                            new OsuSpriteText
+                                            {
+                                                Text = "Presets",
+                                                Font = OsuFont.Default.With(size: 24)
+                                            },
+                                            saveFilename = new OsuTextBox
+                                            {
+                                                PlaceholderText = "New preset filename",
+                                                RelativeSizeAxes = Axes.X,
                                             },
                                             new TriangleButton
                                             {
                                                 Text = "Save",
-                                                Action = save,
+                                                Action = savePreset,
                                                 RelativeSizeAxes = Axes.X,
                                             },
-                                            new TriangleButton
+                                            presetFileSelector = new FileSelector(presetStorage.GetFullPath(string.Empty))
                                             {
-                                                Text = "Load",
-                                                Action = load,
                                                 RelativeSizeAxes = Axes.X,
-                                            },
+                                                Height = 300,
+                                            }
                                         }
                                     },
                                 },
@@ -332,6 +352,14 @@ namespace osu.Game.Tests.Visual.SoundDesign
                 },
             };
 
+            presetFileSelector.CurrentFile.ValueChanged += value =>
+            {
+                string path = value.NewValue.FullName;
+
+                loadPreset(path);
+                saveFilename.Text = Path.GetFileNameWithoutExtension(path);
+            };
+
             sampleFileSelector.CurrentFile.ValueChanged += value =>
             {
                 var sample = Path.GetFileNameWithoutExtension(value.NewValue.Name);
@@ -344,17 +372,16 @@ namespace osu.Game.Tests.Visual.SoundDesign
             };
         });
 
-        [Resolved]
-        private GameHost host { get; set; }
-
-        private void save()
+        private void savePreset()
         {
-            File.WriteAllText(host.Storage.GetFullPath("out.json"), JsonConvert.SerializeObject(settings));
+            string path = presetStorage.GetFullPath($"{saveFilename.Text}.json", true);
+            File.WriteAllText(path, JsonConvert.SerializeObject(settings));
+            presetFileSelector.CurrentFile.Value = new FileInfo(path);
         }
 
-        private void load()
+        private void loadPreset(string filename)
         {
-            var saved = JsonConvert.DeserializeObject<AccuracyCircleAdjustments>(File.ReadAllText(host.Storage.GetFullPath("out.json")));
+            var saved = JsonConvert.DeserializeObject<AccuracyCircleAdjustments>(File.ReadAllText(presetStorage.GetFullPath(filename)));
 
             foreach (var (_, prop) in saved.GetSettingsSourceProperties())
             {
