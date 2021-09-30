@@ -5,68 +5,53 @@ using ManagedBass.Fx;
 using osu.Framework.Audio.Mixing;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using osu.Framework.Logging;
 
 namespace osu.Game.Audio.Effects
 {
-    public class Filter : Component
+    public class Filter : Component, IFilterableAudioComponent
     {
-        public BQFType FilterType = BQFType.LowPass;
-        public float SweepCutoffStart = 2000;
-        public float SweepCutoffEnd = 150;
-        public float SweepDuration = 100;
-        public Easing SweepEasing = Easing.None;
-
-        public bool IsActive { get; private set; }
-
-        private readonly Bindable<float> filterFreq = new Bindable<float>();
+        private const int max_cutoff = 22049;
         private readonly AudioMixer mixer;
-        private BQFParameters filter;
+        private readonly BQFParameters filter;
+
+        public BindableNumber<int> Cutoff { get; set; } = new BindableNumber<int>(max_cutoff)
+        {
+            MinValue = 0,
+            MaxValue = max_cutoff
+        };
 
         /// <summary>
         /// A BiQuad filter that performs a filter-sweep when toggled on or off.
         /// </summary>
         /// <param name="mixer">The mixer this effect should be attached to.</param>
-        public Filter(AudioMixer mixer)
+        /// <param name="filterType">The type of filter to employ (e.g. LowPass, HighPass, etc)</param>
+        public Filter(AudioMixer mixer, BQFType filterType = BQFType.LowPass)
         {
             this.mixer = mixer;
-        }
-
-        public void Enable()
-        {
+            filter = new BQFParameters
+            {
+                lFilter = filterType,
+                fCenter = max_cutoff
+            };
             attachFilter();
-            this.TransformBindableTo(filterFreq, SweepCutoffEnd, SweepDuration, SweepEasing);
-        }
-
-        public void Disable()
-        {
-            this.TransformBindableTo(filterFreq, SweepCutoffStart, SweepDuration, SweepEasing).OnComplete(_ => detachFilter());
         }
 
         private void attachFilter()
         {
-            if (IsActive) return;
-
-            filter = new BQFParameters
-            {
-                lFilter = FilterType,
-                fCenter = filterFreq.Value = SweepCutoffStart
-            };
-
+            Logger.Log("===== ATTACH =====");
             mixer.Effects.Add(filter);
-            filterFreq.ValueChanged += updateFilter;
-            IsActive = true;
+            Cutoff.ValueChanged += updateFilter;
         }
 
         private void detachFilter()
         {
-            if (!IsActive) return;
-
-            filterFreq.ValueChanged -= updateFilter;
+            Logger.Log("===== DETACH =====");
+            Cutoff.ValueChanged -= updateFilter;
             mixer.Effects.Remove(filter);
-            IsActive = false;
         }
 
-        private void updateFilter(ValueChangedEvent<float> cutoff)
+        private void updateFilter(ValueChangedEvent<int> cutoff)
         {
             var filterIndex = mixer.Effects.IndexOf(filter);
             if (filterIndex < 0) return;
@@ -76,6 +61,15 @@ namespace osu.Game.Audio.Effects
 
             existingFilter.fCenter = cutoff.NewValue;
             mixer.Effects[filterIndex] = existingFilter;
+
+            // Logger.Log($"===== FILTER: {cutoff.NewValue} =====");
+            // var filterIndex2 = mixer.Effects.IndexOf(filter);
+            // if (filterIndex2 < 0) return;
+            //
+            // var existingFilter2 = mixer.Effects[filterIndex2] as BQFParameters;
+            // if (existingFilter2 == null) return;
+            //
+            // Logger.Log($"===== FILTER ACTUAL: {existingFilter2.fCenter} =====");
         }
 
         protected override void Dispose(bool isDisposing)

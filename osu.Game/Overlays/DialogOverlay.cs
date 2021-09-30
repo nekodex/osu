@@ -82,14 +82,14 @@ namespace osu.Game.Overlays
         {
             base.PopIn();
             this.FadeIn(PopupDialog.ENTER_DURATION, Easing.OutQuint);
-            filter.Enable();
+            // filter.Enable();
         }
 
         protected override void PopOut()
         {
             base.PopOut();
 
-            filter.Disable();
+            // filter.Disable();
 
             if (CurrentDialog?.State.Value == Visibility.Visible)
             {
