@@ -169,7 +169,7 @@ namespace osu.Game.Overlays.BeatmapSet.Buttons
             }
             else
             {
-                Preview?.Stop();
+                Preview?.FadeStop();
                 loading = false;
             }
         }

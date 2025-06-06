@@ -28,6 +28,9 @@ namespace osu.Game.Audio
 
         private bool hasStarted;
 
+        private const int fade_length = 300;
+        private bool fadingOut;
+
         [BackgroundDependencyLoader]
         private void load()
         {
@@ -73,8 +76,14 @@ namespace osu.Game.Audio
                     return;
 
                 hasStarted = true;
+                fadingOut = false;
 
                 Track.Restart();
+
+                // Fade-in track on play
+                Track.Volume.Value = 0;
+                this.TransformBindableTo(Track.Volume, 1, fade_length, Easing.InCubic);
+
                 Started?.Invoke();
             });
 
@@ -106,6 +115,45 @@ namespace osu.Game.Audio
             }
 
             Stopped?.Invoke();
+        }
+
+        /// <summary>
+        /// Stops playing this <see cref="PreviewTrack"/>, with a fade out.
+        /// </summary>
+        public void FadeStop()
+        {
+            if (Track == null)
+                return;
+
+            if (!Track.HasCompleted)
+                fadeOut();
+            else
+                Stop();
+
+            hasStarted = false;
+
+            Stopped?.Invoke();
+        }
+
+        private void fadeOut()
+        {
+            if (Track == null || !hasStarted || fadingOut)
+                return;
+
+            fadingOut = true;
+            this.TransformBindableTo(Track.Volume, 0, fade_length, Easing.Out)
+                .Finally(_ => Stop());
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+
+            if (Track == null)
+                return;
+
+            if (!fadingOut && Track.CurrentTime >= Length - fade_length)
+                fadeOut();
         }
 
         /// <summary>

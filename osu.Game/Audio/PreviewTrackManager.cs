@@ -16,7 +16,7 @@ namespace osu.Game.Audio
     {
         private readonly IAdjustableAudioComponent mainTrackAdjustments;
 
-        private readonly BindableDouble muteBindable = new BindableDouble();
+        private readonly BindableDouble volumeBindable = new BindableDouble(1);
 
         private ITrackStore trackStore = null!;
 
@@ -31,6 +31,7 @@ namespace osu.Game.Audio
         private void load(AudioManager audioManager)
         {
             trackStore = audioManager.GetTrackStore(new TrustedDomainOnlineStore());
+            mainTrackAdjustments.AddAdjustment(AdjustableProperty.Volume, volumeBindable);
         }
 
         /// <summary>
@@ -44,9 +45,9 @@ namespace osu.Game.Audio
 
             track.Started += () => Schedule(() =>
             {
-                CurrentTrack?.Stop();
+                CurrentTrack?.FadeStop();
                 CurrentTrack = track;
-                mainTrackAdjustments.AddAdjustment(AdjustableProperty.Volume, muteBindable);
+                this.TransformBindableTo(volumeBindable, 0, 300, Easing.Out);
             });
 
             track.Stopped += () => Schedule(() =>
@@ -55,7 +56,7 @@ namespace osu.Game.Audio
                     return;
 
                 CurrentTrack = null;
-                mainTrackAdjustments.RemoveAdjustment(AdjustableProperty.Volume, muteBindable);
+                this.TransformBindableTo(volumeBindable, 1, 300, Easing.InCubic);
             });
 
             return track;
@@ -77,6 +78,13 @@ namespace osu.Game.Audio
 
             CurrentTrack.Stop();
             // CurrentTrack should not be set to null here as it will result in incorrect handling in the track.Stopped callback above.
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+
+            mainTrackAdjustments.RemoveAdjustment(AdjustableProperty.Volume, volumeBindable);
         }
 
         /// <summary>

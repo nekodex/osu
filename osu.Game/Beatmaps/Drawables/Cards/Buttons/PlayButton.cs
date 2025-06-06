@@ -111,7 +111,7 @@ namespace osu.Game.Beatmaps.Drawables.Cards.Buttons
         {
             toggleLoading(false);
             Playing.Value = false;
-            previewTrack?.Stop();
+            previewTrack?.FadeStop();
         }
 
         private void onPreviewLoaded(PreviewTrack loadedPreview)
